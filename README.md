@@ -1,2 +1,2 @@
 # Deploy and manage SQL Server instances with PowerShell
-This repository contains demoes script I used in various SQL oriented sessions to illustrate how to deploy and manage SQL Server instances via PowerShell and PowerShell Desired State Configuration
+This repository contains demo scripts I used in SQL oriented sessions to illustrate how to deploy and manage SQL Server instances via PowerShell and PowerShell Desired State Configuration.
