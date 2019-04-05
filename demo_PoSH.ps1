@@ -169,6 +169,9 @@ $fullBackupJob | Set-DbaAgentJob -ScheduleId $schedule.ID
 
 Get-DbaAgentJob -sqlInstance SQL02 -Category "Database Maintenance" | Where-Object Name -like '*backup*full*' | Select-Object Name, JobSchedules
 
+# Massive backup example
+Backup-DbaDatabase -SqlInstance "SQL02" -BackupDirectory C:\SQLBackup -CopyOnly
+
 # Availability group management
 # Add a new DB to existing AG
 Get-DbaAvailabilityGroup -SqlInstance "SQL02"
@@ -217,5 +220,7 @@ Update-DbaServiceAccount -Credential (Get-Credential) -ComputerName "SQL02" -Ser
 Set-DbaPrivilege -ComputerName "SQL02" -Type "IFI", "LPIM" -Verbose
 Set-DbaMaxDop -SqlInstance "SQL02" -MaxDop 1
 Set-DBAMaxMemory -SQLInstance "SQL02" -Max $((Get-DbaMaxMemory -SQLInstance "SQL02").Total - 3072)
+# OR #
+Set-DBAMaxMemory -SQLInstance "SQL02" -Max (Test-DbaMaxMemory -SqlInstance "SQL02").RecommendedValue
 
 #endregion
