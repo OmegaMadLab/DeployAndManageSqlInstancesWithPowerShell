@@ -63,7 +63,7 @@ $sqlServer
 $sqlServerNamed
 
 # Create a new SQL login
-$sqlServer.Logins
+$sqlServer.Logins | Select-Object Name
 
 $login = [Microsoft.SqlServer.Management.Smo.login]::new($sqlServer, 'newSqlLogin')
 $login.LoginType = [Microsoft.SqlServer.Management.Smo.LoginType]::SqlLogin
@@ -109,11 +109,12 @@ Get-ChildItem | ForEach-Object { $_.Script() }
 
 #region DBATools module
 # Remove SqlServer module from memory, it may cause issues with DBATools
+Set-Location C:\
 remove-Module SqlServer
 
-Install-Module SqlServer
+Install-Module DBATools
 # OR #
-Update-Module SqlServer
+Update-Module DBATools
 Start-Process -filepath "https://dbatools.io" -WindowStyle Maximized
 Start-Process -filepath "https://docs.dbatools.io/" -WindowStyle Maximized
 
@@ -151,7 +152,11 @@ Invoke-DbaQuery -sqlInstance "SQL02", "SQL02\NAMED" -Query $query
 # Install community tools, like Ola Hallengren's maintenance solution - https://ola.hallengren.com/
 $maintenanceDb = New-DbaDatabase -SqlInstance "SQL02" -Name "DBAMaintenance"
 $backupFolder = New-DbaDirectory -SqlInstance "SQL02" -Path C:\DbaBackup
-Install-DbaMaintenanceSolution -SqlInstance "SQL02" -Database $maintenanceDb.Name -BackupLocation $backupFolder.Path -CleanupTime 24 -InstallJobs
+Install-DbaMaintenanceSolution -SqlInstance "SQL02" `
+    -Database $maintenanceDb.Name `
+    -BackupLocation $backupFolder.Path `
+    -CleanupTime 24 `
+    -InstallJobs
 
 # Schedule full backup jobs
 Get-DbaAgentJob -sqlInstance SQL02 -Category "Database Maintenance" | Where-Object { $_.Name -like '*backup*full*' -and $_.JobSchedules.count -eq 0 } 
@@ -177,12 +182,35 @@ Get-DbaAgDatabase -SqlInstance "SQL02" | Out-GridView
 New-DbaDatabase -SqlInstance "SQL02" -Name "AvgDb3"
 Backup-DbaDatabase -SqlInstance "SQL02" -Database "AvgDb3" -BackupDirectory "C:\SQLBackup"
 
-New-DbaAvailabilityGroup -Primary "SQL02" -Secondary "SQL03" -Name "DemoAG2" -ClusterType Wsfc -AvailabilityMode SynchronousCommit -FailoverMode Automatic -Database "AvgDb3" -SeedingMode Automatic
+New-DbaAvailabilityGroup -Primary "SQL02" `
+    -Secondary "SQL03" `
+    -Name "DemoAG2" `
+    -ClusterType Wsfc `
+    -AvailabilityMode SynchronousCommit `
+    -FailoverMode Automatic `
+    -Database "AvgDb3" `
+    -SeedingMode Automatic
 
 # Sync logins and agent jobs between replicas
 Copy-DbaLogin -Source "SQL02" -Destination "SQL03"
 Copy-DbaLogin -Source "SQL02" -Destination "SQL03" -SyncOnly
 Copy-DbaAgentJob -Source "SQL02" -Destination "SQL03"
 
+# Instance setup - alternative to DSC
+$config = @{
+    AGTSVCSTARTUPTYPE     = "Manual"
+    SQLCOLLATION          = "Latin1_General_CI_AS"
+    BROWSERSVCSTARTUPTYPE = "Manual"
+    FILESTREAMLEVEL       = 0
+    PATH                  = "D:\"
+    FEATURE               = "ENGINE"
+}
+Install-DbaInstance -SqlInstance SQL02\NAMED -Version 2017 -Configuration $config
+
+# Post-deployment configuration
+Update-DbaServiceAccount -ComputerName "SQL02" -ServiceName "MSSQLSERVER" -Credential (Get-Credential)
+Set-DbaPrivilege -ComputerName "SQL02" -Type "IFI", "LPIM" -Verbose
+Set-DbaMaxDop -SqlInstance "$($sqlInstance.VNN)\$($SqlInstance.Label)" -MaxDop $sqlInstance.MaxDOP
+Set-DBAMaxMemory -SQLInstance "SQL02" -Max $((Get-DbaMaxMemory -SQLInstance "SQL02").Total - 3072)
 
 #endregion

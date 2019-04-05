@@ -36,7 +36,7 @@ code .\SqlSetup\DscConfig\SimpleSqlInstance\localhost.mof
 
 # Example of DSC Configuration execution
 # Remember to install DSC resources on target system!!
-Invoke-Command -ComputerName SQL01 -ScriptBlock { Install-Module SqlServerDsc -Force -Confirm:$false }
+Invoke-Command -ComputerName SQL02 -ScriptBlock { Install-Module SqlServerDsc -Force -Confirm:$false }
 Start-DscConfiguration .\SqlSetup\DscConfig\SimpleSqlInstance\SimpleSqlInstance.ps1 -Wait -Verbose -Force
 
 # DSC configuration application demo
@@ -68,6 +68,6 @@ TwoNodesAlwaysOnAvg -ConfigurationData $ConfigurationData -ActiveDirectoryAdmini
 Start-DscConfiguration .\SqlSetup\DscConfig\SimpleSqlInstance\SimpleSqlInstance.ps1 -Wait -Verbose -Force
 
 # DSC configuration application demo
-.\SqlSetup\Media\TwoNodeAlwaysOnAG.png
+Start-Process .\SqlSetup\Media\TwoNodeAlwaysOnAG.html -WindowStyle Maximized
 
 #endregion
