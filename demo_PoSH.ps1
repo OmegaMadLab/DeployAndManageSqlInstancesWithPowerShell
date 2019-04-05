@@ -63,14 +63,14 @@ $sqlServer
 $sqlServerNamed
 
 # Create a new SQL login
-$sqlServer.Logins | Select-Object Name
+$sqlServer.Logins 
 
 $login = [Microsoft.SqlServer.Management.Smo.login]::new($sqlServer, 'newSqlLogin')
 $login.LoginType = [Microsoft.SqlServer.Management.Smo.LoginType]::SqlLogin
 $login.PasswordPolicyEnforced = $false
 $login.Create('$str0ngPassw0rd')
 
-$sqlServer.Logins
+$sqlServer.Logins | Select-Object Name
 
 #endregion
 
@@ -159,7 +159,8 @@ Install-DbaMaintenanceSolution -SqlInstance "SQL02" `
     -InstallJobs
 
 # Schedule full backup jobs
-Get-DbaAgentJob -sqlInstance SQL02 -Category "Database Maintenance" | Where-Object { $_.Name -like '*backup*full*' -and $_.JobSchedules.count -eq 0 } 
+$fullBackupJob = Get-DbaAgentJob -sqlInstance SQL02 -Category "Database Maintenance" | Where-Object { $_.Name -like '*backup*full*' -and $_.JobSchedules.count -eq 0 } 
+$fullBackupJob
 
 Get-DbaAgentSchedule -SqlInstance "SQL02"
 $schedule = New-DbaAgentSchedule -SqlInstance "SQL02" -Schedule "Daily at midnight" -FrequencyType Daily -FrequencyInterval 24 -StartTime "000000" -Force
@@ -189,7 +190,11 @@ New-DbaAvailabilityGroup -Primary "SQL02" `
     -AvailabilityMode SynchronousCommit `
     -FailoverMode Automatic `
     -Database "AvgDb3" `
-    -SeedingMode Automatic
+    -SeedingMode Manual `
+    -SharedPath "\\SQL02\SQLBackup"
+
+Get-DbaAvailabilityGroup -SqlInstance "SQL02"
+Get-DbaAgDatabase -SqlInstance "SQL02" | Out-GridView
 
 # Sync logins and agent jobs between replicas
 Copy-DbaLogin -Source "SQL02" -Destination "SQL03"
@@ -208,9 +213,9 @@ $config = @{
 Install-DbaInstance -SqlInstance SQL02\NAMED -Version 2017 -Configuration $config
 
 # Post-deployment configuration
-Update-DbaServiceAccount -ComputerName "SQL02" -ServiceName "MSSQLSERVER" -Credential (Get-Credential)
+Update-DbaServiceAccount -Credential (Get-Credential) -ComputerName "SQL02" -ServiceName "MSSQLSERVER"
 Set-DbaPrivilege -ComputerName "SQL02" -Type "IFI", "LPIM" -Verbose
-Set-DbaMaxDop -SqlInstance "$($sqlInstance.VNN)\$($SqlInstance.Label)" -MaxDop $sqlInstance.MaxDOP
+Set-DbaMaxDop -SqlInstance "SQL02" -MaxDop 1
 Set-DBAMaxMemory -SQLInstance "SQL02" -Max $((Get-DbaMaxMemory -SQLInstance "SQL02").Total - 3072)
 
 #endregion
