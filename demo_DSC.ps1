@@ -37,7 +37,7 @@ code .\SqlSetup\DscConfig\SimpleSqlInstance\localhost.mof
 # Example of DSC Configuration execution
 # Remember to install DSC resources on target system!!
 Invoke-Command -ComputerName SQL02 -ScriptBlock { Install-Module SqlServerDsc -Force -Confirm:$false }
-Start-DscConfiguration .\SqlSetup\DscConfig\SimpleSqlInstance\SimpleSqlInstance.ps1 -Wait -Verbose -Force
+Start-DscConfiguration .\SqlSetup\DscConfig\SimpleSqlInstance -Wait -Verbose -Force
 
 # DSC configuration application demo
 .\SqlSetup\Media\SimpleSqlInstanceDsc.mp4
